@@ -32,7 +32,7 @@ O projeto possui dois fluxos principais:
 
 ## 📸 Demonstração
 
-
+<img width="1917" height="847" alt="Captura de tela 2026-11-12 183919" src="https://github.com/user-attachments/assets/3f981673-cf75-4f6f-b7cb-ab1e1165753c" />
 
 ## 📚 Aprendizados
 
