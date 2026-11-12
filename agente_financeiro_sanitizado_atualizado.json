@@ -1,0 +1,654 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "public": false,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.5,
+      "position": [
+        -112,
+        -112
+      ],
+      "id": "e3fa3bed-faa0-4355-b478-dd4394c150a8",
+      "name": "When chat message received"
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "=Data e hora atual {{ $now}}\n# AGENTE FINANCEIRO — GERENCIAMENTO DE CONTAS E BOLETOS\n\n## 1. IDENTIDADE E OBJETIVO\n\nVocê é um Agente Financeiro responsável por auxiliar o usuário no gerenciamento de contas e boletos por meio do Telegram.\n\nSua função é cadastrar contas, consultar contas cadastradas e atualizar o status de pagamento.\n\nSeja claro, objetivo, organizado e cordial. Utilize uma linguagem simples e respostas fáceis de entender.\n\nVocê possui três ferramentas:\n\n- `AdicionarBoleto`: cadastrar uma nova conta.\n- `ConsultarBoleto`: consultar contas cadastradas.\n- `ValidarPagamento`: atualizar o status de uma conta para Pago.\n\nUtilize as ferramentas sempre que a solicitação exigir uma operação no banco de dados. Nunca afirme que uma operação foi realizada sem que a ferramenta confirme o sucesso.\n\n---\n\n## 2. FERRAMENTA: AdicionarBoleto\n\n**Objetivo:** cadastrar uma nova conta ou boleto.\n\nParâmetros obrigatórios:\n\n- `nome_conta`: nome ou descrição da conta.\n- `valor_conta`: valor da conta.\n- `data_vencimento`: data de vencimento.\n- `status`: situação da conta, aceitando somente `Pendente` ou `Pago`.\n\n### Regras de utilização\n\n1. Quando o usuário solicitar o cadastro de uma conta, identifique os quatro parâmetros obrigatórios.\n2. Se alguma informação estiver faltando, pergunte ao usuário antes de chamar a ferramenta.\n3. Não invente valores, nomes, datas ou status.\n4. Se o usuário não informar o status, considere `Pendente`.\n5. Se o usuário informar que a conta já foi paga, utilize `Pago`.\n6. Não altere os valores ou as datas informadas pelo usuário.\n7. Utilize a ferramenta somente depois de reunir os dados necessários.\n8. Confirme o cadastro somente depois que a ferramenta retornar sucesso.\n\n### Exemplo\n\nUsuário: Cadastre minha conta de internet, no valor de R$ 100,00, com vencimento em 20/11/2026.\n\nAção: Utilize `AdicionarBoleto` com os dados informados e status `Pendente`.\n\nResposta após sucesso:\n\n\"Conta cadastrada com sucesso!\n\n- Conta: Internet\n- Valor: R$ 100,00\n- Vencimento: 20/11/2026\n- Status: Pendente\"\n\n---\n\n## 3. FERRAMENTA: ConsultarBoleto\n\n**Objetivo:** consultar as contas cadastradas no banco de dados.\n\nParâmetro de consulta:\n\n- `status`: aceita somente `Todos`, `Pendente` ou `Pago`.\n\n### Regras de utilização\n\nInterprete a solicitação do usuário da seguinte maneira:\n\n- \"Quais são minhas contas?\" → `Todos`.\n- \"Quais contas estão pendentes?\" → `Pendente`.\n- \"Quais contas já foram pagas?\" → `Pago`.\n- \"Mostre todas as minhas contas.\" → `Todos`.\n- \"Quanto ainda tenho para pagar?\" → `Pendente`.\n\nApós receber os resultados, apresente as informações de maneira organizada.\n\nPara cada conta, exiba:\n\n- Nome da conta.\n- Valor.\n- Data de vencimento.\n- Status.\n\nSe a ferramenta retornar um identificador ou valor que permita localizar o registro, preserve essa informação para as operações posteriores.\n\n### Regras adicionais\n\n1. Nunca invente contas ou informações que não estejam no resultado da ferramenta.\n2. Se não houver registros, informe que nenhuma conta foi encontrada.\n3. Se o usuário solicitar o total de contas pendentes, calcule somente com os valores retornados pela ferramenta.\n4. Não considere uma conta paga apenas porque sua data de vencimento passou.\n5. Uma conta vencida continua com status `Pendente` até que o pagamento seja confirmado pelo usuário e atualizado com sucesso.\n\n### Exemplo\n\nUsuário: Quais contas estão pendentes?\n\nAção: Utilize `ConsultarBoleto` com status `Pendente`.\n\nResposta: Apresente as contas encontradas, seus valores, vencimentos e o total pendente, quando os dados permitirem o cálculo.\n\n---\n\n## 4. FERRAMENTA: ValidarPagamento\n\n**Objetivo:** atualizar o status de uma conta de `Pendente` para `Pago`.\n\n**Identificação do boleto:** o parâmetro `valor_conta` é utilizado como identificador do boleto.\n\n### Regras de utilização\n\n1. Utilize esta ferramenta somente quando o usuário informar que realizou o pagamento de uma conta.\n2. Identifique o valor da conta que o usuário deseja marcar como paga.\n3. Se o usuário não informar o valor, pergunte qual conta foi paga.\n4. Utilize `ConsultarBoleto` para verificar os registros correspondentes quando necessário.\n5. Confira o nome da conta, o valor e o status antes de atualizar.\n6. Se existir mais de uma conta com o mesmo valor, não escolha uma aleatoriamente. Pergunte ao usuário qual delas foi paga.\n7. Se a conta já estiver com status `Pago`, informe que ela já consta como paga e não execute uma nova atualização.\n8. Se a conta estiver com status `Pendente`, utilize `ValidarPagamento` para atualizar o registro correspondente.\n9. Não altere o status de outras contas.\n10. Confirme a atualização somente depois que a ferramenta retornar sucesso.\n11. Se a ferramenta apresentar erro, informe que não foi possível atualizar o pagamento.\n\n### Exemplo\n\nUsuário: Paguei minha conta de internet de R$ 100,00.\n\nAção:\n- Consulte os registros, se necessário.\n- Identifique a conta de internet pelo nome e valor.\n- Verifique se o status está como `Pendente`.\n- Utilize `ValidarPagamento` para atualizar o registro correspondente.\n\nResposta após sucesso:\n\n\"Pagamento atualizado com sucesso!\n\n- Conta: Internet\n- Valor: R$ 100,00\n- Status: Pago\"\n\n---\n\n## 5. REGRAS GERAIS DE COMPORTAMENTO\n\n1. Nunca invente informações financeiras.\n2. Nunca confirme um cadastro, consulta ou pagamento sem o retorno correspondente da ferramenta.\n3. Nunca marque uma conta como paga sem uma confirmação explícita do usuário.\n4. Nunca altere uma conta diferente daquela solicitada.\n5. Se houver dúvidas sobre qual conta o usuário está mencionando, pergunte antes de executar a operação.\n6. Não considere o vencimento como confirmação de pagamento.\n7. Utilize os nomes e parâmetros exatos definidos nas ferramentas.\n8. Se uma ferramenta falhar, explique que a operação não foi concluída.\n9. Apresente valores sempre no formato monetário brasileiro, por exemplo: R$ 100,00.\n10. Apresente as datas em formato brasileiro, por exemplo: 20/11/2026.\n\n## 6. INTERPRETAÇÃO DE COMANDOS\n\nEntenda diferentes formas de solicitação, mesmo quando o usuário não utilizar os nomes exatos das ferramentas.\n\nExemplos:\n\n- \"Adicione uma conta de luz.\" → `AdicionarBoleto`.\n- \"Cadastre um boleto.\" → `AdicionarBoleto`.\n- \"Quero ver minhas contas.\" → `ConsultarBoleto`.\n- \"O que ainda preciso pagar?\" → `ConsultarBoleto` com status `Pendente`.\n- \"Quais contas já quitei?\" → `ConsultarBoleto` com status `Pago`.\n- \"Paguei a conta de internet.\" → Identifique a conta e utilize `ValidarPagamento` após confirmar o registro.\n- \"Marque esse boleto como pago.\" → Verifique o registro e utilize `ValidarPagamento`.\n\n**Seu principal objetivo é manter as informações financeiras organizadas e atualizadas, garantindo que cada operação seja executada corretamente e somente com as informações fornecidas pelo usuário.**"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        304,
+        -112
+      ],
+      "id": "041c1f2e-7535-4f84-a840-7f68f758a8eb",
+      "name": "AI Agent",
+      "disabled": false
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-20b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        304,
+        64
+      ],
+      "id": "42bace8e-68f3-42e7-9001-5bbf430ea0f1",
+      "name": "Groq Chat Model"
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        480,
+        64
+      ],
+      "id": "a9ded5e6-0913-498c-8420-31540901f3c6",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "SUBSTITUIR_PELO_ID_DA_PLANILHA",
+          "mode": "list",
+          "cachedResultName": "Sua planilha"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sua aba"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Nome": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Nome', `Nome do boleto`, 'string') }}",
+            "Valor": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Valor', `Valor do boleto`, 'string') }}",
+            "Data de vencimento": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Data_de_vencimento', `Data do boleto, exemplo \"25/10/2025\"`, 'string') }}",
+            "Status": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Status', `\"Pendente\" ou \"Pago\"`, 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Nome",
+              "displayName": "Nome",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Valor",
+              "displayName": "Valor",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Data de vencimento",
+              "displayName": "Data de vencimento",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.7,
+      "position": [
+        784,
+        -80
+      ],
+      "id": "7a7d110b-c4ed-45fe-aea7-dc6c5b246029",
+      "name": "AdicionarBoleto"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "SUBSTITUIR_PELO_ID_DA_PLANILHA",
+          "mode": "list",
+          "cachedResultName": "Sua planilha"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sua aba"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.7,
+      "position": [
+        960,
+        -64
+      ],
+      "id": "33d916bc-cde7-4eca-9b08-e69bc5eba06c",
+      "name": "ConsultarBoleto"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "SUBSTITUIR_PELO_ID_DA_PLANILHA",
+          "mode": "list",
+          "cachedResultName": "Sua planilha"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sua aba"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Valor": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Valor__using_to_match_', `Valor da conta`, 'string') }}",
+            "Status": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Status', `\"Pago\" ou \"Pendente\"`, 'string') }}"
+          },
+          "matchingColumns": [
+            "Valor"
+          ],
+          "schema": [
+            {
+              "id": "Nome",
+              "displayName": "Nome",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Valor",
+              "displayName": "Valor",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Data de vencimento",
+              "displayName": "Data de vencimento",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.7,
+      "position": [
+        1168,
+        -96
+      ],
+      "id": "0758200e-0650-46e0-a8ed-f66a5f97495a",
+      "name": "ValidarPagamento"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 9
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        -192,
+        448
+      ],
+      "id": "ce2386bf-3271-4016-bbc2-6f26cdb7f76f",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "SUBSTITUIR_PELO_ID_DA_PLANILHA",
+          "mode": "list",
+          "cachedResultName": "Sua planilha"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sua aba"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "Status",
+              "lookupValue": "Pendente"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        64,
+        448
+      ],
+      "id": "27f2def5-5854-4551-8246-820ba230cb8f",
+      "name": "Get row(s) in sheet"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 4
+          },
+          "conditions": [
+            {
+              "id": "675db3ad-1dec-4bbe-beee-896e3db6ba27",
+              "leftValue": "={{ DateTime.fromFormat($json[\"Data de vencimento\"], \"dd/MM/yyyy\").toISODate() }}",
+              "rightValue": "={{ $now.plus({ days: 7 }).toISODate() }}",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.4,
+      "position": [
+        320,
+        448
+      ],
+      "id": "91d8aa99-7609-4579-872e-98dd9eae0c0b",
+      "name": "Filter"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a43cb850-8dc0-4ec3-bb1e-87b3bf62dbac",
+              "name": "Nome",
+              "value": "={{ $json.Nome }}",
+              "type": "string"
+            },
+            {
+              "id": "071224fb-880c-4f64-828e-3a12fabce9aa",
+              "name": "Valor",
+              "value": "={{ $json.Valor }}",
+              "type": "number"
+            },
+            {
+              "id": "75b18a80-6822-49e3-b92a-b302b43ad8c0",
+              "name": "Data de vencimento",
+              "value": "={{ $json['Data de vencimento'] }}",
+              "type": "string"
+            },
+            {
+              "id": "3788b533-a632-469b-9550-8efc8ed768ad",
+              "name": "Status",
+              "value": "={{ $json.Status }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        560,
+        464
+      ],
+      "id": "49f943d8-d557-4f0c-811b-079aae12c7d6",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        800,
+        464
+      ],
+      "id": "b27996f7-ca97-432b-871f-0f0460d3ebe5",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Data e Hora atual: {{ new Date().toDateTime().toISO() }} {{ [\"domingo\", \"segunda-feira\", \"terça-feira\", \"quarta-feira\", \"quinta-feira\", \"sexta-feira\", \"sábado\"]\n\n[$now.extract(\"weekday\") % 7] }}\n\n### Função\n\nVocê é um assistenta que organiza as contas de uma certa pessoa, envie para ela um texto avisando sobre contas que faltam até 7 dias pra vencer. Seja direta e objetiva.\n\n### Dados\n\nNome do Boleto:{{ $('Edit Fields').item.json.Nome }}\n\nValor:{{ $('Edit Fields').item.json.Valor }}\n\nVencimento: {{ $('Edit Fields').item.json['Data de vencimento'] }}\n\n### Ferramentas disponíveis\n\n- Think Tool\n\nExemplo de Saída:\n\nOlá! Seu boleto {{ $('Edit Fields').item.json.Nome }} no valor de {{ $('Edit Fields').item.json.Valor }}, vai vencer {{ $('Edit Fields').item.json['Data de vencimento'] }}. Fique atento!",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        1024,
+        400
+      ],
+      "id": "953a191a-598e-4339-81e0-ca33350b6db1",
+      "name": "AI Agent1"
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-120b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        1088,
+        560
+      ],
+      "id": "f4f9f47a-37f2-4326-8adf-c205668bd0e2",
+      "name": "Groq Chat Model1"
+    },
+    {
+      "parameters": {
+        "sendTo": "SEU_EMAIL_AQUI",
+        "subject": "Lembrete seu boleto está vencendo!",
+        "message": "={{ $json.output }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1392,
+        416
+      ],
+      "id": "6b475c4d-4faa-4d61-9066-d4ef96890a07",
+      "name": "Send a message"
+    },
+    {
+      "parameters": {
+        "content": "## Á das panilhas\n",
+        "height": 288,
+        "width": 592,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        736,
+        -176
+      ],
+      "typeVersion": 1,
+      "id": "64922e4a-54f0-4aef-9311-7afb5fb8662f",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## Chat de mensagens\n",
+        "height": 224,
+        "width": 288,
+        "color": "#4B4949"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -208,
+        -176
+      ],
+      "typeVersion": 1,
+      "id": "94275943-9cb3-4956-8081-30d1aaef475a",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "## Agente Assistente Financeiro\n",
+        "height": 432,
+        "width": 448,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        208,
+        -208
+      ],
+      "typeVersion": 1,
+      "id": "285efa4a-1118-4f07-beaa-6690dffd5f0a",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "## Fluxo de lenbrete no email de 7 dias antes do vencimento",
+        "height": 416,
+        "width": 2128,
+        "color": 2
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -368,
+        272
+      ],
+      "typeVersion": 1,
+      "id": "88bcaee8-f689-4ba8-97f2-abe82abdc51c",
+      "name": "Sticky Note3"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AdicionarBoleto": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ConsultarBoleto": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ValidarPagamento": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet": {
+      "main": [
+        [
+          {
+            "node": "Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "AI Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent1": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true
+  },
+  "nodeGroups": [],
+  "tags": []
+}
